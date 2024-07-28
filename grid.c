@@ -4,7 +4,7 @@
 
 HexGrid *CreateHexGrid(int cellSize, int width, int height)
 {
-    HexGrid *grid = malloc(sizeof(HexGrid)); // Allocate memory for Grid structure
+    HexGrid *grid = malloc(sizeof(HexGrid));
     if (grid != NULL)
     {
         grid->CellSize = cellSize;
@@ -62,14 +62,13 @@ void DrawHexGrid(HexGrid *grid)
                 posX += sqrt(3) * grid->CellSize / 2;
             }
             Tile tile = grid->Tiles[index++];
+            // if (posX > grid->camera->target.x + GetScreenWidth() + grid->CellSize ||
+            //     posY > grid->camera->target.y + GetScreenHeight() + grid->CellSize)
+            //     continue;
 
-            if (posX > grid->camera->target.x + GetScreenWidth() + grid->CellSize ||
-                posY > grid->camera->target.y + GetScreenHeight() + grid->CellSize)
-                continue;
-
-            if (posX < grid->camera->target.x - grid->CellSize ||
-                posY < grid->camera->target.y - grid->CellSize)
-                continue;
+            // if (posX < grid->camera->target.x - grid->CellSize ||
+            //     posY < grid->camera->target.y - grid->CellSize)
+            //     continue;
 
             DrawHex(tile, (Vector2){posX, posY}, grid->CellSize);
         }

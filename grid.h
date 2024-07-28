@@ -14,7 +14,7 @@ typedef struct HexGrid
     int Width;
     int Height;
     Tile *Tiles;
-    Camera2D *camera;
+
 } HexGrid;
 void DrawHexGrid(HexGrid *grid);
 HexGrid *CreateHexGrid(int cellSize, int width, int height);

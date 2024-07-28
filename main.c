@@ -9,16 +9,20 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-#define GRID_COUNT 100
+#define GRID_COUNT 10
+#define CARD_COUNT 2
 
 typedef struct
 {
     Texture2D Texture;
+    char *Name;
 } Card;
 
 typedef struct
 {
-    Card Dragging;
+    bool IsDraggingCard;
+    Card TargetDragCard;
+    char *InfoText;
 } GameState;
 
 enum TextureSprites
@@ -28,41 +32,32 @@ enum TextureSprites
     WOODLANDS,
     HIGHLANDS,
     VILLAGE,
-    FRAME,
-    FRAME2
+    LOGGING_CAMP,
+    UIFRAME,
+    UIFRAME2
 } TextureSprites;
 
-bool IsPointerOverUI = false;
+bool isPointerOverUI = false;
 GameState State;
 
 Texture2D textures[7];
-Card cards[1];
-int main(void)
+Card cards[CARD_COUNT];
+
+void LoadTextures()
 {
-    srand(time(NULL));
-    const int screenWidth = 1600;
-    const int screenHeight = 900;
-    InitWindow(screenWidth, screenHeight, "Pointy-Top Hexagon Grid Example");
+    textures[PLAIN] = LoadTexture("assets/Ground/Plain.png");
+    textures[DIRT] = LoadTexture("assets/Ground/Dirt.png");
+    textures[WOODLANDS] = LoadTexture("assets/Ground/WoodLandsBiome.png");
+    textures[HIGHLANDS] = LoadTexture("assets/Ground/HighlandsBiome.png");
+    textures[VILLAGE] = LoadTexture("assets/Placable/VillagePeasant.png");
+    textures[LOGGING_CAMP] = LoadTexture("assets/Placable/LoggingCamp.png");
+    textures[UIFRAME] = LoadTexture("assets/UI/frame.png");
+    textures[UIFRAME2] = LoadTexture("assets/UI/frame2.png");
+}
 
-    textures[0] = LoadTexture("assets/Ground/Plain.png");
-    textures[1] = LoadTexture("assets/Ground/Dirt.png");
-    textures[2] = LoadTexture("assets/Ground/WoodLandsBiome.png");
-    textures[3] = LoadTexture("assets/Ground/HighlandsBiome.png");
-    textures[4] = LoadTexture("assets/Placable/village00.png");
-    textures[5] = LoadTexture("assets/UI/frame.png");
-    textures[6] = LoadTexture("assets/UI/frame2.png");
-
-    cards[0].Texture = textures[VILLAGE];
-
-    bool drag = false;
-    Camera2D camera = {0};
-    camera.target = (Vector2){-200, -200};
-    camera.offset = (Vector2){0, 0};
-    camera.rotation = 0.0f;
-    camera.zoom = 1;
-
+HexGrid *LoadGrid()
+{
     HexGrid *grid = CreateHexGrid(50, GRID_COUNT, GRID_COUNT);
-    grid->camera = &camera;
     for (int i = 0; i < GRID_COUNT * GRID_COUNT; i++)
     {
         int r = rand() % 4;
@@ -85,25 +80,63 @@ int main(void)
             break;
         }
     }
+    return grid;
+}
 
+void LoadCards()
+{
+    //
+    cards[0].Name = "Village";
+    cards[0].Texture = textures[VILLAGE];
+
+    //
+    cards[1].Name = "Logging Camp";
+    cards[1].Texture = textures[LOGGING_CAMP];
+}
+
+bool isCameraMoving = false;
+int main(void)
+{
+    srand(time(NULL));
+    const int screenWidth = 1600;
+    const int screenHeight = 900;
+    InitWindow(screenWidth, screenHeight, "Hexatown");
+    LoadTextures();
+    LoadGrid();
+    LoadCards();
+    State.InfoText = "Drag a card to start";
+
+    Camera2D camera = {0};
+    camera.target = (Vector2){-200, -200};
+    camera.offset = (Vector2){0, 0};
+    camera.rotation = 0.0f;
+    camera.zoom = 1;
+    HexGrid *grid = LoadGrid();
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground((Color){65, 56, 19, 255});
         BeginMode2D(camera);
 
-        if (!IsPointerOverUI && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            drag = true;
-
+        if (!isPointerOverUI && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            isCameraMoving = true;
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            drag = false;
+            isCameraMoving = false;
 
-        if (drag)
+        if (isCameraMoving)
             camera.target = (Vector2){camera.target.x + GetMouseDelta().x * -1, camera.target.y + GetMouseDelta().y * -1};
 
         DrawHexGrid(grid);
         EndMode2D();
-        DrawPlacementUI();
+        DrawCardControllers();
+        if (State.IsDraggingCard)
+        {
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            {
+                State.IsDraggingCard = false;
+            }
+            DrawDrag(State.TargetDragCard);
+        }
         DrawFPS(5, 5);
         EndDrawing();
     }
@@ -118,28 +151,46 @@ void Draw(Rectangle rectangle, enum TextureSprites sprites)
     DrawTexturePro(textures[sprites], source, target, (Vector2){0, 0}, 0, WHITE);
 }
 
-void DrawPlacementUI()
+void DrawCardControllers()
 {
+    if (isCameraMoving)
+        return;
     int width = GetScreenWidth() / 4;
     int height = 200;
     int x = GetScreenWidth() / 2 - width / 2;
     int y = GetScreenHeight() - height;
     Rectangle uiRect = (Rectangle){x, y, width, height};
     Vector2 mousePosition = GetMousePosition();
-    IsPointerOverUI = CheckCollisionPointRec(mousePosition, uiRect);
+    isPointerOverUI = CheckCollisionPointRec(mousePosition, uiRect);
+    Draw((Rectangle){uiRect.x, uiRect.y, uiRect.width, uiRect.height}, UIFRAME);
+    DrawText(State.InfoText, uiRect.x, uiRect.y + uiRect.height, 25, WHITE);
 
-    Draw((Rectangle){uiRect.x, uiRect.y, uiRect.width, uiRect.height}, FRAME);
-    Rectangle source = (Rectangle){0, 0, textures[VILLAGE].width, textures[VILLAGE].height};
-    Rectangle target = (Rectangle){uiRect.x, uiRect.y, 90, 125};
-    if (CheckCollisionPointRec(mousePosition, target))
+    for (int i = 0; i < CARD_COUNT; i++)
     {
-        target.width = target.width * 1.15;
-        target.height = target.height * 1.15;
-        if (IsMouseButtonDown(0))
+        Card card = cards[i];
+        Texture2D texture = card.Texture;
+        Rectangle source = (Rectangle){0, 0, texture.width, texture.height};
+        Rectangle target = (Rectangle){uiRect.x + 90 * i, uiRect.y, 90, 125};
+        if (CheckCollisionPointRec(mousePosition, target))
         {
-            target.x = mousePosition.x - target.width / 2;
-            target.y = mousePosition.y - target.height / 2;
+            if (IsMouseButtonDown(0))
+            {
+                State.TargetDragCard = card;
+                State.IsDraggingCard = true;
+            }
         }
+        DrawTexturePro(texture, source, target, (Vector2){0, 0}, 0, WHITE);
     }
-    DrawTexturePro(textures[VILLAGE], source, target, (Vector2){0, 0}, 0, WHITE);
+}
+
+void DrawDrag(Card card)
+{
+    Vector2 mousePos = GetMousePosition();
+    Texture2D texture = card.Texture;
+    Rectangle source = (Rectangle){0, 0, texture.width, texture.height};
+    int width = 90;
+    int height = 125;
+    Rectangle target = (Rectangle){mousePos.x - width / 2, mousePos.y - height / 2, width, height};
+    DrawTexturePro(texture, source, target, (Vector2){0.5, 0.5}, 0, WHITE);
+    DrawText(State.TargetDragCard.Name, GetScreenWidth() / 2, GetScreenHeight() / 2, 24, WHITE);
 }
