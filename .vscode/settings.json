@@ -1,0 +1,16 @@
+{
+	"files.exclude": {
+		"**/.git": false,
+		"**/.svn": false,
+		"**/.hg": false,
+		"**/CVS": false,
+		"**/.DS_Store": false,
+		"**/*.o": false,
+		"**/*.exe": false
+	},
+	"C_Cpp.errorSquiggles": "disabled",
+	"files.associations": {
+		"tile.h": "c",
+		"grid.h": "c"
+	}
+}
