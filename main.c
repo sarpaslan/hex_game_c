@@ -43,6 +43,8 @@ GameState State;
 Texture2D textures[7];
 Card cards[CARD_COUNT];
 
+bool isCameraMoving = false;
+
 void LoadTextures()
 {
     textures[PLAIN] = LoadTexture("assets/Ground/Plain.png");
@@ -94,7 +96,6 @@ void LoadCards()
     cards[1].Texture = textures[LOGGING_CAMP];
 }
 
-bool isCameraMoving = false;
 int main(void)
 {
     srand(time(NULL));
@@ -163,16 +164,18 @@ void DrawCardControllers()
     Vector2 mousePosition = GetMousePosition();
     isPointerOverUI = CheckCollisionPointRec(mousePosition, uiRect);
     Draw((Rectangle){uiRect.x, uiRect.y, uiRect.width, uiRect.height}, UIFRAME);
-    DrawText(State.InfoText, uiRect.x, uiRect.y + uiRect.height, 25, WHITE);
 
+    int padding = 10;
+    int spacing = 50;
     for (int i = 0; i < CARD_COUNT; i++)
     {
         Card card = cards[i];
         Texture2D texture = card.Texture;
         Rectangle source = (Rectangle){0, 0, texture.width, texture.height};
-        Rectangle target = (Rectangle){uiRect.x + 90 * i, uiRect.y, 90, 125};
+        Rectangle target = (Rectangle){uiRect.x + (90 * i) + (i * spacing) + padding, uiRect.y + padding, 90, 125};
         if (CheckCollisionPointRec(mousePosition, target))
         {
+            State.InfoText = card.Name;
             if (IsMouseButtonDown(0))
             {
                 State.TargetDragCard = card;
@@ -181,6 +184,7 @@ void DrawCardControllers()
         }
         DrawTexturePro(texture, source, target, (Vector2){0, 0}, 0, WHITE);
     }
+    DrawText(State.InfoText, uiRect.x, uiRect.y - 25, 25, WHITE);
 }
 
 void DrawDrag(Card card)
@@ -192,5 +196,4 @@ void DrawDrag(Card card)
     int height = 125;
     Rectangle target = (Rectangle){mousePos.x - width / 2, mousePos.y - height / 2, width, height};
     DrawTexturePro(texture, source, target, (Vector2){0.5, 0.5}, 0, WHITE);
-    DrawText(State.TargetDragCard.Name, GetScreenWidth() / 2, GetScreenHeight() / 2, 24, WHITE);
 }
