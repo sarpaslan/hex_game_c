@@ -9,23 +9,12 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
+#define DEBUG 1
+
 #define GRID_COUNT 10
 #define CARD_COUNT 2
 
-typedef struct
-{
-    Texture2D Texture;
-    char *Name;
-} Card;
-
-typedef struct
-{
-    bool IsDraggingCard;
-    Card TargetDragCard;
-    char *InfoText;
-} GameState;
-
-enum TextureSprites
+typedef enum TextureSprites
 {
     PLAIN,
     DIRT,
@@ -37,6 +26,19 @@ enum TextureSprites
     UIFRAME2
 } TextureSprites;
 
+typedef struct
+{
+    enum TextureSprites SpriteID;
+    char Name[50];
+} Card;
+
+typedef struct
+{
+    bool IsDragging;
+    Card *TargetDragCard;
+    char *InfoText;
+} GameState;
+
 bool isPointerOverUI = false;
 GameState State;
 
@@ -44,6 +46,8 @@ Texture2D textures[7];
 Card cards[CARD_COUNT];
 
 bool isCameraMoving = false;
+
+char *CardToString_Malloc(Card card);
 
 void LoadTextures()
 {
@@ -87,26 +91,51 @@ HexGrid *LoadGrid()
 
 void LoadCards()
 {
+    printf("%s", "\n-----------------");
     //
-    cards[0].Name = "Village";
-    cards[0].Texture = textures[VILLAGE];
+    strncpy(cards[0].Name, "Village", sizeof(cards[0].Name));
+    cards[0].SpriteID = VILLAGE;
 
-    //
-    cards[1].Name = "Logging Camp";
-    cards[1].Texture = textures[LOGGING_CAMP];
+    strncpy(cards[1].Name, "Logging Camp", sizeof(cards[1].Name));
+    cards[1].SpriteID = LOGGING_CAMP;
+
+    for (int i = 0; i < CARD_COUNT; i++)
+        PrintCard(&cards[i]);
+
+    printf("%s", "\n------------------\n");
+}
+
+void PrintCard(Card *card)
+{
+    printf("\n\t{Card Name: %s SpriteID:%d}\n", card->Name, card->SpriteID);
+}
+
+bool CheckIsMouseOverHex(HexGrid *grid)
+{
+    Tile *tiles = grid->Tiles;
+    for (int i = 0; i < GRID_COUNT * GRID_COUNT; i++)
+    {
+        Tile *tile = &tiles[i];
+        tile->Color = WHITE;
+        // TODO: Check here
+    }
+    return true;
 }
 
 int main(void)
 {
     srand(time(NULL));
+    SetTargetFPS(120);
     const int screenWidth = 1600;
     const int screenHeight = 900;
     InitWindow(screenWidth, screenHeight, "Hexatown");
-    LoadTextures();
     LoadGrid();
     LoadCards();
     State.InfoText = "Drag a card to start";
+    State.TargetDragCard = NULL;
+    State.IsDragging = false;
 
+    LoadTextures();
     Camera2D camera = {0};
     camera.target = (Vector2){-200, -200};
     camera.offset = (Vector2){0, 0};
@@ -127,17 +156,14 @@ int main(void)
         if (isCameraMoving)
             camera.target = (Vector2){camera.target.x + GetMouseDelta().x * -1, camera.target.y + GetMouseDelta().y * -1};
 
+        if (CheckIsMouseOverHex(grid))
+        {
+            // do something when is hovering
+        }
         DrawHexGrid(grid);
         EndMode2D();
         DrawCardControllers();
-        if (State.IsDraggingCard)
-        {
-            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            {
-                State.IsDraggingCard = false;
-            }
-            DrawDrag(State.TargetDragCard);
-        }
+        HandleDrag();
         DrawFPS(5, 5);
         EndDrawing();
     }
@@ -145,11 +171,11 @@ int main(void)
     return 0;
 }
 
-void Draw(Rectangle rectangle, enum TextureSprites sprites)
+void DrawSprite(Rectangle rectangle, enum TextureSprites sprite)
 {
-    Rectangle source = (Rectangle){0, 0, textures[sprites].width, textures[sprites].height};
+    Rectangle source = (Rectangle){0, 0, textures[sprite].width, textures[sprite].height};
     Rectangle target = (Rectangle){rectangle.x, rectangle.y, rectangle.width, rectangle.height};
-    DrawTexturePro(textures[sprites], source, target, (Vector2){0, 0}, 0, WHITE);
+    DrawTexturePro(textures[sprite], source, target, (Vector2){0, 0}, 0, WHITE);
 }
 
 void DrawCardControllers()
@@ -163,37 +189,69 @@ void DrawCardControllers()
     Rectangle uiRect = (Rectangle){x, y, width, height};
     Vector2 mousePosition = GetMousePosition();
     isPointerOverUI = CheckCollisionPointRec(mousePosition, uiRect);
-    Draw((Rectangle){uiRect.x, uiRect.y, uiRect.width, uiRect.height}, UIFRAME);
+    DrawSprite((Rectangle){uiRect.x, uiRect.y, uiRect.width, uiRect.height}, UIFRAME);
 
     int padding = 10;
     int spacing = 50;
     for (int i = 0; i < CARD_COUNT; i++)
     {
         Card card = cards[i];
-        Texture2D texture = card.Texture;
+        Texture2D texture = textures[card.SpriteID];
         Rectangle source = (Rectangle){0, 0, texture.width, texture.height};
         Rectangle target = (Rectangle){uiRect.x + (90 * i) + (i * spacing) + padding, uiRect.y + padding, 90, 125};
-        if (CheckCollisionPointRec(mousePosition, target))
+
+        // DragBegin
+        if (!State.IsDragging)
         {
-            State.InfoText = card.Name;
-            if (IsMouseButtonDown(0))
+            if (CheckCollisionPointRec(mousePosition, target))
             {
-                State.TargetDragCard = card;
-                State.IsDraggingCard = true;
+                State.InfoText = card.Name;
+                if (IsMouseButtonDown(0))
+                {
+                    State.IsDragging = true;
+                    State.TargetDragCard = &card;
+                    printf("Address of Drag Begin: %p\n", (void *)State.TargetDragCard);
+                }
             }
         }
-        DrawTexturePro(texture, source, target, (Vector2){0, 0}, 0, WHITE);
+        DrawSprite(target, card.SpriteID);
+#if DEBUG
+        DrawRectangleLines(target.x, target.y, target.width, target.height, WHITE);
+#endif
     }
     DrawText(State.InfoText, uiRect.x, uiRect.y - 25, 25, WHITE);
 }
 
-void DrawDrag(Card card)
+void HandleDrag()
 {
+    if (!State.IsDragging)
+    {
+        return;
+    }
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+    {
+        State.IsDragging = false;
+        return;
+    }
+    printf("Address of Current Dragging: %p\n", (void *)State.TargetDragCard);
+    Card card = *State.TargetDragCard;
+    PrintCard(&card);
+
+    // TODO Optimize this.
+    Texture2D texture = textures[card.SpriteID];
     Vector2 mousePos = GetMousePosition();
-    Texture2D texture = card.Texture;
     Rectangle source = (Rectangle){0, 0, texture.width, texture.height};
     int width = 90;
     int height = 125;
     Rectangle target = (Rectangle){mousePos.x - width / 2, mousePos.y - height / 2, width, height};
-    DrawTexturePro(texture, source, target, (Vector2){0.5, 0.5}, 0, WHITE);
+    DrawSprite(target, card.SpriteID);
+}
+
+// TODO this is not a good solution because you have to free the
+// memory after each usage.
+char *CardToString_Malloc(Card card)
+{
+    static char buffer[100];
+    snprintf(buffer, sizeof(buffer), "Name: %s Sprite: %d", card.Name, card.SpriteID);
+    return buffer;
 }

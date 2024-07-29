@@ -5,6 +5,7 @@
 typedef struct Tile
 {
     Texture2D Texture;
+    Vector2 Position;
     Color Color;
 } Tile;
 

@@ -71,11 +71,12 @@
             "type": "shell",
             "command": "gcc ./main.c ./grid.c -o main.exe -Wall -std=c99 -Wno-missing-braces -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lwinmm && main.exe",
             "presentation": {
-                "reveal": "silent",
-                "panel": "shared",
+                "reveal": "always",
+                "panel": "dedicated",
                 "revealProblems": "onProblem",
                 "clear": true,
                 "showReuseMessage": false,
+                "focus": false,
             },
             "group": {
                 "kind": "build",

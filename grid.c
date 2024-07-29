@@ -45,7 +45,7 @@ void DrawHex(Tile tile, Vector2 center, int size)
     Rectangle target = (Rectangle){center.x, center.y, targetSizeX, size * 2};
 
     DrawTexturePro(tile.Texture, source,
-                   target, (Vector2){target.width / 2, target.height / 2}, 0, (Color){255, 255, 255, 255});
+                   target, (Vector2){target.width / 2, target.height / 2}, 0, tile.Color);
 }
 
 void DrawHexGrid(HexGrid *grid)
@@ -62,6 +62,8 @@ void DrawHexGrid(HexGrid *grid)
                 posX += sqrt(3) * grid->CellSize / 2;
             }
             Tile tile = grid->Tiles[index++];
+            tile.Position.x = x;
+            tile.Position.y = y;
             // if (posX > grid->camera->target.x + GetScreenWidth() + grid->CellSize ||
             //     posY > grid->camera->target.y + GetScreenHeight() + grid->CellSize)
             //     continue;
