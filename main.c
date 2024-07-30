@@ -35,7 +35,7 @@ typedef struct
 typedef struct
 {
     bool IsDragging;
-    Card *TargetDragCard;
+    Card TargetDragCard;
     char *InfoText;
 } GameState;
 
@@ -105,9 +105,9 @@ void LoadCards()
     printf("%s", "\n------------------\n");
 }
 
-void PrintCard(Card *card)
+void PrintCard(Card card)
 {
-    printf("\n\t{Card Name: %s SpriteID:%d}\n", card->Name, card->SpriteID);
+    printf("\n\t{Card Name: %s SpriteID:%d}\n", card.Name, card.SpriteID);
 }
 
 bool CheckIsMouseOverHex(HexGrid *grid)
@@ -132,7 +132,6 @@ int main(void)
     LoadGrid();
     LoadCards();
     State.InfoText = "Drag a card to start";
-    State.TargetDragCard = NULL;
     State.IsDragging = false;
 
     LoadTextures();
@@ -209,8 +208,7 @@ void DrawCardControllers()
                 if (IsMouseButtonDown(0))
                 {
                     State.IsDragging = true;
-                    State.TargetDragCard = &card;
-                    printf("Address of Drag Begin: %p\n", (void *)State.TargetDragCard);
+                    State.TargetDragCard = card;
                 }
             }
         }
@@ -233,9 +231,8 @@ void HandleDrag()
         State.IsDragging = false;
         return;
     }
-    printf("Address of Current Dragging: %p\n", (void *)State.TargetDragCard);
-    Card card = *State.TargetDragCard;
-    PrintCard(&card);
+    Card card = State.TargetDragCard;
+    PrintCard(card);
 
     // TODO Optimize this.
     Texture2D texture = textures[card.SpriteID];
