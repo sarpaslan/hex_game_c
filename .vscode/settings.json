@@ -8,7 +8,7 @@
 		"**/*.o": false,
 		"**/*.exe": false
 	},
-	"C_Cpp.errorSquiggles": "disabled",
+	"C_Cpp.errorSquiggles": "enabled",
 	"files.associations": {
 		"tile.h": "c",
 		"grid.h": "c"

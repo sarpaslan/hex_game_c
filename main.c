@@ -42,12 +42,15 @@ typedef struct
 bool isPointerOverUI = false;
 GameState State;
 
-Texture2D textures[7];
+Texture2D textures[8];
 Card cards[CARD_COUNT];
 
 bool isCameraMoving = false;
 
 char *CardToString_Malloc(Card card);
+void HandleDrag();
+void DrawCardControllers();
+void PrintCard(Card card);
 
 void LoadTextures()
 {
@@ -100,7 +103,7 @@ void LoadCards()
     cards[1].SpriteID = LOGGING_CAMP;
 
     for (int i = 0; i < CARD_COUNT; i++)
-        PrintCard(&cards[i]);
+        PrintCard(cards[i]);
 
     printf("%s", "\n------------------\n");
 }
